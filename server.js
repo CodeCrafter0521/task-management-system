@@ -88,9 +88,9 @@ const sendEmail = async (to, subject, body) => {
       subject: subject,
       text: body,
     });
-    return { message: Email sent to ${to}: ${subject} };
+    return { message: 'Email sent to ${to}: ${subject}' };
   } catch (error) {
-    return { message: Failed to send email to ${to}: ${subject} };
+    return { message: 'Failed to send email to ${to}: ${subject}' };
   }
 };
 
@@ -213,7 +213,7 @@ app.put("/api/tasks/:id/complete", authenticateToken, async (req, res) => {
   task.status = "Done";
   await task.save();
   const notification = await Notification.create({
-    message: Task "${task.title}" marked as completed,
+    message: 'Task "${task.title}" marked as completed',
     userId: task.createdBy,
   });
   io.to(task.createdBy).emit("notification", notification);
@@ -232,14 +232,14 @@ app.put("/api/tasks/:id/assign", authenticateToken, async (req, res) => {
   task.assigneeEmail = assigneeEmail;
   await task.save();
   const notification = await Notification.create({
-    message: Task "${task.title}" assigned to ${assigneeEmail},
+    message: 'Task "${task.title}" assigned to ${assigneeEmail}',
     userId: assignee.id,
   });
   io.to(assignee.id).emit("notification", notification);
   const emailNotification = await sendEmail(
     assigneeEmail,
     "Task Assigned",
-    A new task "${task.title}" has been assigned to you. Due date: ${task.dueDate}
+    'A new task "${task.title}" has been assigned to you. Due date: ${task.dueDate}'
   );
   io.to(assignee.id).emit("notification", emailNotification);
   res.json({ message: "Task assigned successfully" });
@@ -281,7 +281,7 @@ app.post("/api/tasks/:id/comments", authenticateToken, async (req, res) => {
     taskId: req.params.id,
   });
   const notification = await Notification.create({
-    message: New comment on task "${task.title}": ${comment},
+    message: 'New comment on task "${task.title}": ${comment}',
     userId: task.createdBy,
   });
   io.to(task.createdBy).emit("notification", notification);
@@ -312,4 +312,4 @@ app.get("/api/notifications", authenticateToken, async (req, res) => {
 
 // Start Server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(Server running on port ${PORT}));
+server.listen(PORT, () => console.log('Server running on port ${PORT}'));
