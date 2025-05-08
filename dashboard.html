@@ -41,11 +41,6 @@
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>
           </select>
-          <label for="filter-missed">Missed Tasks:</label>
-          <select class="form-select" id="filter-missed">
-            <option value="">All</option>
-            <option value="true">Missed</option>
-          </select>
           <button class="clear-filters-btn">Clear Filters</button>
         </div>
       </div>
@@ -87,13 +82,11 @@
       const status = document.getElementById("filter-status").value;
       const priority = document.getElementById("filter-priority").value;
       const dueDate = document.getElementById("sort-due-date").value;
-      const missed = document.getElementById("filter-missed").value;
       const params = new URLSearchParams();
       if (search) params.append("search", search);
       if (status) params.append("status", status);
       if (priority) params.append("priority", priority);
       if (dueDate) params.append("dueDate", dueDate);
-      if (missed) params.append("missed", missed);
       const url = `/api/tasks${params.toString() ? `?${params.toString()}` : ""}`;
 
       try {
@@ -126,7 +119,6 @@
           </div>
           <div class="d-flex gap-2">
             ${task.status !== "Done" ? `<button class="btn btn-success" onclick="completeTask(${task.id})">Complete</button>` : ""}
-            <button class="btn btn-info" onclick="viewComments(${task.id})">Comments</button>
             <button class="btn btn-primary" onclick="assignTask(${task.id})">Assign</button>
             ${task.createdBy == userId ? `<button class="btn btn-danger" onclick="deleteTask(${task.id})">Delete</button>` : ""}
           </div>
@@ -229,36 +221,6 @@
       }
     }
 
-    async function viewComments(taskId) {
-      try {
-        const response = await fetch(`/api/tasks/${taskId}/comments`, {
-          headers: { "Authorization": `Bearer ${token}` },
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          showFlashMessage(errorData.message || "Failed to fetch comments", "danger");
-          return;
-        }
-        const comments = await response.json();
-        const commentText = prompt("Add a comment (or press OK to view comments):", "");
-        if (commentText) {
-          await fetch(`/api/tasks/${taskId}/comments`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`,
-            },
-            body: JSON.stringify({ comment: commentText }),
-          });
-          viewComments(taskId);
-        } else {
-          alert("Comments:\n" + (comments.length ? comments.map(c => `- ${c.comment}`).join("\n") : "No comments yet."));
-        }
-      } catch (error) {
-        showFlashMessage("An error occurred while fetching comments: " + error.message, "danger");
-      }
-    }
-
     async function fetchNotifications() {
       try {
         const url = `/api/notifications?userId=${userId}`;
@@ -283,13 +245,11 @@
     document.getElementById("filter-status").addEventListener("change", fetchTasks);
     document.getElementById("filter-priority").addEventListener("change", fetchTasks);
     document.getElementById("sort-due-date").addEventListener("change", fetchTasks);
-    document.getElementById("filter-missed").addEventListener("change", fetchTasks);
     document.querySelector(".clear-filters-btn").addEventListener("click", () => {
       document.getElementById("search").value = "";
       document.getElementById("filter-status").value = "";
       document.getElementById("filter-priority").value = "";
       document.getElementById("sort-due-date").value = "";
-      document.getElementById("filter-missed").value = "";
       fetchTasks();
     });
     document.querySelector(".filter-btn").addEventListener("click", () => {

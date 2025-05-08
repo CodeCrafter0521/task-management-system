@@ -68,10 +68,6 @@ h2, h3 {
   flex-grow: 1;
 }
 
-.comment-section {
-  margin-top: 10px;
-}
-
 #notifications {
   margin-top: 20px;
   background-color: #e9ecef;

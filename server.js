@@ -51,18 +51,11 @@ const Task = sequelize.define("Task", {
   assigneeEmail: { type: DataTypes.STRING },
 });
 
-const Comment = sequelize.define("Comment", {
-  comment: { type: DataTypes.TEXT, allowNull: false },
-  userId: { type: DataTypes.INTEGER },
-});
-
 const Notification = sequelize.define("Notification", {
   message: { type: DataTypes.STRING, allowNull: false },
   userId: { type: DataTypes.INTEGER },
 });
 
-Task.hasMany(Comment);
-Comment.belongsTo(Task);
 User.hasMany(Task, { foreignKey: "createdBy" });
 Task.belongsTo(User, { foreignKey: "createdBy" });
 
@@ -183,10 +176,9 @@ app.post("/api/tasks", authenticateToken, async (req, res) => {
 });
 
 app.get("/api/tasks", authenticateToken, async (req, res) => {
-  const { status, priority, dueDate, search, missed } = req.query;
+  const { status, priority, dueDate, search } = req.query;
   const user = await User.findByPk(req.user.id);
   if (!user) return res.status(404).json({ message: "User not found" });
-  const now = new Date();
 
   let where = {
     [Op.or]: [
@@ -198,10 +190,6 @@ app.get("/api/tasks", authenticateToken, async (req, res) => {
   if (status) where.status = status;
   if (priority) where.priority = priority;
   if (search) where.title = { [Op.iLike]: `%${search}%` };
-  if (missed === "true") {
-    where.status = "To-Do";
-    where.dueDate = { [Op.lt]: now };
-  }
 
   let order = [];
   if (dueDate) {
@@ -279,39 +267,6 @@ app.delete("/api/tasks/:id", authenticateToken, async (req, res) => {
   }
   await task.destroy();
   res.json({ message: "Task deleted successfully" });
-});
-
-// Comment Routes
-app.get("/api/tasks/:id/comments", authenticateToken, async (req, res) => {
-  const task = await Task.findByPk(req.params.id);
-  if (!task) return res.status(404).json({ message: "Task not found" });
-  const user = await User.findByPk(req.user.id);
-  if (task.createdBy !== req.user.id && task.assigneeEmail !== user.email) {
-    return res.status(403).json({ message: "Not authorized to view comments" });
-  }
-  const comments = await Comment.findAll({ where: { taskId: req.params.id } });
-  res.json(comments);
-});
-
-app.post("/api/tasks/:id/comments", authenticateToken, async (req, res) => {
-  const task = await Task.findByPk(req.params.id);
-  if (!task) return res.status(404).json({ message: "Task not found" });
-  const user = await User.findByPk(req.user.id);
-  if (task.createdBy !== req.user.id && task.assigneeEmail !== user.email) {
-    return res.status(403).json({ message: "Not authorized to add comments" });
-  }
-  const { comment } = req.body;
-  const newComment = await Comment.create({
-    comment: comment,
-    userId: req.user.id,
-    taskId: req.params.id,
-  });
-  const notification = await Notification.create({
-    message: `New comment on task "${task.title}": ${comment}`,
-    userId: task.createdBy,
-  });
-  io.to(task.createdBy).emit("notification", notification);
-  res.status(201).json(newComment);
 });
 
 // User Routes (Admin Only)
