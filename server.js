@@ -177,7 +177,7 @@ app.get("/api/tasks", authenticateToken, async (req, res) => {
 
   if (status) where.status = status;
   if (priority) where.priority = priority;
-  if (search) where.title = { [Op.iLike]: %${search}% };
+  if (search) where.title = { [Op.iLike]: '%${search}%' };
   if (missed === "true") {
     where.status = "To-Do";
     where.dueDate = { [Op.lt]: now };
