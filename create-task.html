@@ -45,55 +45,57 @@
   </div>
 
   <script>
-  const token = localStorage.getItem("token");
-  if (!token) {
-    window.location.href = "login.html";
-  }
-
-  document.getElementById("create-task-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const title = document.getElementById("title").value;
-    const description = document.getElementById("description").value;
-    const dueDate = document.getElementById("due-date").value;
-    const priority = document.getElementById("priority").value;
-
-    try {
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": 'Bearer ${token}',
-        },
-        body: JSON.stringify({ title: title, description: description, dueDate: dueDate, priority: priority, status: "To-Do" }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        alert("Task created successfully!");
-        window.location.href = "dashboard.html"; // Ensure redirection
-      } else {
-        alert(data.message || "Failed to create task.");
-      }
-    } catch (error) {
-      alert("An error occurred while creating the task: " + error.message);
+    const token = localStorage.getItem("token");
+    console.log("Token on create-task:", token);
+    if (!token) {
+      window.location.href = "login.html";
     }
-  });
 
-  document.getElementById("logout-btn").addEventListener("click", (e) => {
-    e.preventDefault();
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userRole");
-    window.location.href = "login.html";
-  });
+    document.getElementById("create-task-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("title").value;
+      const description = document.getElementById("description").value;
+      const dueDate = document.getElementById("due-date").value;
+      const priority = document.getElementById("priority").value;
 
-  document.getElementById("logout-btn-footer").addEventListener("click", (e) => {
-    e.preventDefault();
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userRole");
-    window.location.href = "login.html";
-  });
-</script>
+      try {
+        const response = await fetch("/api/tasks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title: title, description: description, dueDate: dueDate, priority: priority, status: "To-Do" }),
+        });
+        const data = await response.json();
+        console.log("Create task response:", data);
+        if (response.ok) {
+          alert("Task created successfully!");
+          window.location.href = "dashboard.html";
+        } else {
+          alert(data.message || "Failed to create task.");
+        }
+      } catch (error) {
+        console.error("Create task error:", error);
+        alert("An error occurred while creating the task: " + error.message);
+      }
+    });
 
+    document.getElementById("logout-btn").addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userRole");
+      window.location.href = "login.html";
+    });
+
+    document.getElementById("logout-btn-footer").addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userRole");
+      window.location.href = "login.html";
+    });
+  </script>
 </body>
 </html>

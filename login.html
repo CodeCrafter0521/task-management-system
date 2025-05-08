@@ -41,12 +41,14 @@
           localStorage.setItem("token", data.token);
           localStorage.setItem("userId", data.userId);
           localStorage.setItem("userRole", data.role);
+          console.log("Logged in, token:", data.token);
+          console.log("User role:", data.role);
           window.location.href = "dashboard.html";
         } else {
           alert(data.message || "Login failed.");
         }
       } catch (error) {
-        alert("An error occurred during login.");
+        alert("An error occurred during login: " + error.message);
       }
     });
   </script>

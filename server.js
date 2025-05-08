@@ -19,7 +19,7 @@ app.get("/", (req, res) => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
   if (token) {
     try {
-      jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
+      jwt.verify(token, process.env.JWT_SECRET || "my-secure-jwt-secret-123");
       res.redirect("/dashboard.html");
     } catch (err) {
       res.redirect("/register.html");
@@ -88,21 +88,27 @@ const sendEmail = async (to, subject, body) => {
       subject: subject,
       text: body,
     });
-    return { message: 'Email sent to ${to}: ${subject}' };
+    return { message: `Email sent to ${to}: ${subject}` };
   } catch (error) {
-    return { message: 'Failed to send email to ${to}: ${subject}' };
+    console.error("Email sending error:", error);
+    return { message: `Failed to send email to ${to}: ${subject}` };
   }
 };
 
 // Middleware to Authenticate Token
 function authenticateToken(req, res, next) {
   const token = req.header("Authorization")?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ message: "Access denied" });
+  if (!token) {
+    console.log("No token provided in request");
+    return res.status(401).json({ message: "Access denied: No token provided" });
+  }
   try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
+    const verified = jwt.verify(token, process.env.JWT_SECRET || "my-secure-jwt-secret-123");
+    console.log("Token verified, payload:", verified);
     req.user = verified;
     next();
   } catch (error) {
+    console.error("Token verification error:", error.message);
     res.status(400).json({ message: "Invalid token" });
   }
 }
@@ -116,11 +122,14 @@ io.on("connection", (socket) => {
 app.post("/api/auth/register", async (req, res) => {
   const { username, email, password } = req.body;
   const role = email.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? "admin" : "member";
+  console.log(`Registering user: ${email}, assigned role: ${role}`);
   const hashedPassword = await bcrypt.hash(password, 10);
   try {
     const user = await User.create({ username: username, email: email, password: hashedPassword, role: role });
+    console.log(`User registered: ${user.email}, role: ${user.role}`);
     res.status(201).json(user);
   } catch (error) {
+    console.error("Registration error:", error.message);
     res.status(400).json({ message: "Username or email already exists" });
   }
 });
@@ -136,9 +145,12 @@ app.post("/api/auth/login", async (req, res) => {
     },
   });
   if (!user || !(await bcrypt.compare(password, user.password))) {
+    console.log(`Login failed for ${username || email}: Invalid credentials`);
     return res.status(401).json({ message: "Invalid credentials" });
   }
-  const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || "your_jwt_secret", { expiresIn: "1h" });
+  console.log(`User logged in: ${user.email}, role: ${user.role}`);
+  const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || "my-secure-jwt-secret-123", { expiresIn: "1h" });
+  console.log(`Generated token for user ${user.id}: ${token}`);
   const emailNotification = await sendEmail(
     user.email,
     "Welcome Back to Task Management System",
@@ -152,26 +164,28 @@ app.post("/api/auth/login", async (req, res) => {
 app.post("/api/tasks", authenticateToken, async (req, res) => {
   const { title, description, dueDate, priority, status } = req.body;
   const user = await User.findByPk(req.user.id);
-  if(!user) return res.status(404).json({message: "User not found"});
+  if (!user) return res.status(404).json({ message: "User not found" });
   try {
     const task = await Task.create({
-    	title: title,
-    	description: description,
-    	dueDate: dueDate,
-    	priority: priority,
-    	status: status,
-    	createdBy: user.id,
-  	});
-  	res.status(201).json({ message: "Task created successfully", task: task });
-     }  catch(error) {
-	res.status(500).json({message: "Failed to create task", error: error.message });
-       }	
+      title: title,
+      description: description,
+      dueDate: dueDate,
+      priority: priority,
+      status: status,
+      createdBy: user.id,
+    });
+    console.log(`Task created by user ${user.id}: ${task.title}`);
+    res.status(201).json({ message: "Task created successfully", task: task });
+  } catch (error) {
+    console.error("Task creation error:", error.message);
+    res.status(500).json({ message: "Failed to create task", error: error.message });
+  }
 });
 
 app.get("/api/tasks", authenticateToken, async (req, res) => {
   const { status, priority, dueDate, search, missed } = req.query;
   const user = await User.findByPk(req.user.id);
-  if(!user) return res.status(404).json({message: "User not found"});
+  if (!user) return res.status(404).json({ message: "User not found" });
   const now = new Date();
 
   let where = {
@@ -183,7 +197,7 @@ app.get("/api/tasks", authenticateToken, async (req, res) => {
 
   if (status) where.status = status;
   if (priority) where.priority = priority;
-  if (search) where.title = { [Op.iLike]: '%${search}%' };
+  if (search) where.title = { [Op.iLike]: `%${search}%` };
   if (missed === "true") {
     where.status = "To-Do";
     where.dueDate = { [Op.lt]: now };
@@ -207,11 +221,13 @@ app.get("/api/tasks", authenticateToken, async (req, res) => {
   }
 
   try {
-  	const tasks = await Task.findAll({ where: where, order: order });
-  	res.json(tasks);
-      } catch (error) {
-	res.status(500).json({message: "Failed to fetch tasks", error: error.message});
-      }
+    const tasks = await Task.findAll({ where: where, order: order });
+    console.log(`Fetched ${tasks.length} tasks for user ${req.user.id}`);
+    res.json(tasks);
+  } catch (error) {
+    console.error("Fetch tasks error:", error.message);
+    res.status(500).json({ message: "Failed to fetch tasks", error: error.message });
+  }
 });
 
 app.put("/api/tasks/:id/complete", authenticateToken, async (req, res) => {
@@ -223,7 +239,7 @@ app.put("/api/tasks/:id/complete", authenticateToken, async (req, res) => {
   task.status = "Done";
   await task.save();
   const notification = await Notification.create({
-    message: 'Task "${task.title}" marked as completed',
+    message: `Task "${task.title}" marked as completed`,
     userId: task.createdBy,
   });
   io.to(task.createdBy).emit("notification", notification);
@@ -242,14 +258,14 @@ app.put("/api/tasks/:id/assign", authenticateToken, async (req, res) => {
   task.assigneeEmail = assigneeEmail;
   await task.save();
   const notification = await Notification.create({
-    message: 'Task "${task.title}" assigned to ${assigneeEmail}',
+    message: `Task "${task.title}" assigned to ${assigneeEmail}`,
     userId: assignee.id,
   });
   io.to(assignee.id).emit("notification", notification);
   const emailNotification = await sendEmail(
     assigneeEmail,
     "Task Assigned",
-    'A new task "${task.title}" has been assigned to you. Due date: ${task.dueDate}'
+    `A new task "${task.title}" has been assigned to you. Due date: ${task.dueDate}`
   );
   io.to(assignee.id).emit("notification", emailNotification);
   res.json({ message: "Task assigned successfully" });
@@ -291,7 +307,7 @@ app.post("/api/tasks/:id/comments", authenticateToken, async (req, res) => {
     taskId: req.params.id,
   });
   const notification = await Notification.create({
-    message: 'New comment on task "${task.title}": ${comment}',
+    message: `New comment on task "${task.title}": ${comment}`,
     userId: task.createdBy,
   });
   io.to(task.createdBy).emit("notification", notification);
@@ -300,14 +316,18 @@ app.post("/api/tasks/:id/comments", authenticateToken, async (req, res) => {
 
 // User Routes (Admin Only)
 app.get("/api/users", authenticateToken, async (req, res) => {
+  console.log(`User role in /api/users: ${req.user.role}`);
   if (!req.user.role || req.user.role !== "admin") {
-	return res.status(403).json({ message: "Admin access required" });
+    console.log("Admin access denied for user:", req.user);
+    return res.status(403).json({ message: "Admin access required" });
   }
   try {
-  	const users = await User.findAll();
-  	res.json(users);
+    const users = await User.findAll();
+    console.log(`Fetched ${users.length} users for admin ${req.user.id}`);
+    res.json(users);
   } catch (error) {
-	res.status(500).json({message:"Failed to fetch users", error: error.message});
+    console.error("Fetch users error:", error.message);
+    res.status(500).json({ message: "Failed to fetch users", error: error.message });
   }
 });
 
@@ -328,4 +348,4 @@ app.get("/api/notifications", authenticateToken, async (req, res) => {
 
 // Start Server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log('Server running on port ${PORT}'));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -49,7 +49,7 @@
           alert(data.message || "Registration failed.");
         }
       } catch (error) {
-        alert("An error occurred during registration.");
+        alert("An error occurred during registration: " + error.message);
       }
     });
   </script>
