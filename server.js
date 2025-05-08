@@ -152,7 +152,7 @@ app.post("/api/auth/login", async (req, res) => {
 app.post("/api/tasks", authenticateToken, async (req, res) => {
   const { title, description, dueDate, priority, status } = req.body;
   const user = await User.findByPk(req.user.id);
-  if(!user) return res.status(404).json({message: "User not found"f});
+  if(!user) return res.status(404).json({message: "User not found"});
   try {
     const task = await Task.create({
     	title: title,
