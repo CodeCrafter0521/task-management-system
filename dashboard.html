@@ -79,34 +79,34 @@
       setTimeout(() => { flashMessageDiv.innerHTML = ""; }, 3000);
     }
 
-    async function fetchTasks() {
-      const search = document.getElementById("search").value.trim();
-      const status = document.getElementById("filter-status").value;
-      const priority = document.getElementById("filter-priority").value;
-      const dueDate = document.getElementById("sort-due-date").value;
-      const missed = document.getElementById("filter-missed").value;
-      const params = new URLSearchParams();
-      if (search) params.append("search", search);
-      if (status) params.append("status", status);
-      if (priority) params.append("priority", priority);
-      if (dueDate) params.append("dueDate", dueDate);
-      if (missed) params.append("missed", missed);
-      const url = `/api/tasks${params.toString() ? '?${params.toString()}' : ""}`;
+  async function fetchTasks() {
+  	const search = document.getElementById("search").value.trim();
+  	const status = document.getElementById("filter-status").value;
+  	const priority = document.getElementById("filter-priority").value;
+  	const dueDate = document.getElementById("sort-due-date").value;
+  	const missed = document.getElementById("filter-missed").value;
+  	const params = new URLSearchParams();
+  	if (search) params.append("search", search);
+  	if (status) params.append("status", status);
+  	if (priority) params.append("priority", priority);
+  	if (dueDate) params.append("dueDate", dueDate);
+  	if (missed) params.append("missed", missed);
+  	const url = `/api/tasks${params.toString() ? '?${params.toString()}' : ""}`;
 
-      try {
-        const response = await fetch(url, {
-          headers: { "Authorization": 'Bearer ${token}' },
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch tasks");
-        }
-        const tasks = await response.json();
-        displayTasks(tasks);
-      } catch (error) {
-        showFlashMessage("An error occurred while fetching tasks: " + error.message, "danger");
-      }
-    }
+  	try {
+    		const response = await fetch(url, {
+      		headers: { "Authorization": 'Bearer ${token}' },
+    	});
+    	if (!response.ok) {
+      		const errorData = await response.json();
+      		throw new Error(errorData.message || "Failed to fetch tasks");
+    	}
+    	const tasks = await response.json();
+    	displayTasks(tasks);
+  	} catch (error) {
+    		showFlashMessage("An error occurred while fetching tasks: " + error.message, "danger");
+  	}
+  }
 
     function displayTasks(tasks) {
       const tasksDiv = document.getElementById("tasks");
@@ -129,21 +129,21 @@
     }
 
     async function fetchUsers() {
-      try {
-        const response = await fetch("/api/users", {
-          headers: { "Authorization": 'Bearer ${token}' },
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          showFlashMessage(errorData.message || "Failed to fetch users (admin access required)", "danger");
-          return;
-        }
-        const users = await response.json();
-        displayUsers(users);
-      } catch (error) {
-        showFlashMessage("An error occurred while fetching users.", "danger");
-      }
-    }
+  	try {
+    		const response = await fetch("/api/users", {
+      		headers: { "Authorization": 'Bearer ${token}' },
+    	});
+    	if (!response.ok) {
+      		const errorData = await response.json();
+      		showFlashMessage(errorData.message || "Failed to fetch users (admin access required)", "danger");
+      		return;
+    	}
+    	const users = await response.json();
+    	displayUsers(users);
+  	} catch (error) {
+    	showFlashMessage("An error occurred while fetching users: " + error.message, "danger");
+  	}
+   }
 
     function displayUsers(users) {
       const usersDiv = document.getElementById("users");

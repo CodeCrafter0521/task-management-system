@@ -115,7 +115,7 @@ io.on("connection", (socket) => {
 // Authentication Routes
 app.post("/api/auth/register", async (req, res) => {
   const { username, email, password } = req.body;
-  const role = email === ADMIN_EMAIL ? "admin" : "member";
+  const role = email.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? "admin" : "member";
   const hashedPassword = await bcrypt.hash(password, 10);
   try {
     const user = await User.create({ username: username, email: email, password: hashedPassword, role: role });
@@ -152,20 +152,26 @@ app.post("/api/auth/login", async (req, res) => {
 app.post("/api/tasks", authenticateToken, async (req, res) => {
   const { title, description, dueDate, priority, status } = req.body;
   const user = await User.findByPk(req.user.id);
-  const task = await Task.create({
-    title: title,
-    description: description,
-    dueDate: dueDate,
-    priority: priority,
-    status: status,
-    createdBy: user.id,
-  });
-  res.status(201).json({ message: "Task created successfully", task: task });
+  if(!user) return res.status(404).json({message: "User not found"f});
+  try {
+    const task = await Task.create({
+    	title: title,
+    	description: description,
+    	dueDate: dueDate,
+    	priority: priority,
+    	status: status,
+    	createdBy: user.id,
+  	});
+  	res.status(201).json({ message: "Task created successfully", task: task });
+     }  catch(error) {
+	res.status(500).json({message: "Failed to create task", error: error.message });
+       }	
 });
 
 app.get("/api/tasks", authenticateToken, async (req, res) => {
   const { status, priority, dueDate, search, missed } = req.query;
   const user = await User.findByPk(req.user.id);
+  if(!user) return res.status(404).json({message: "User not found"});
   const now = new Date();
 
   let where = {
@@ -200,8 +206,12 @@ app.get("/api/tasks", authenticateToken, async (req, res) => {
     ];
   }
 
-  const tasks = await Task.findAll({ where: where, order: order });
-  res.json(tasks);
+  try {
+  	const tasks = await Task.findAll({ where: where, order: order });
+  	res.json(tasks);
+      } catch (error) {
+	res.status(500).json({message: "Failed to fetch tasks", error: error.message});
+      }
 });
 
 app.put("/api/tasks/:id/complete", authenticateToken, async (req, res) => {
@@ -290,9 +300,15 @@ app.post("/api/tasks/:id/comments", authenticateToken, async (req, res) => {
 
 // User Routes (Admin Only)
 app.get("/api/users", authenticateToken, async (req, res) => {
-  if (req.user.role !== "admin") return res.status(403).json({ message: "Admin access required" });
-  const users = await User.findAll();
-  res.json(users);
+  if (!req.user.role || req.user.role !== "admin") {
+	return res.status(403).json({ message: "Admin access required" });
+  }
+  try {
+  	const users = await User.findAll();
+  	res.json(users);
+  } catch (error) {
+	res.status(500).json({message:"Failed to fetch users", error: error.message});
+  }
 });
 
 app.delete("/api/users/:id", authenticateToken, async (req, res) => {
